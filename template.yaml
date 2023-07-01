@@ -1,0 +1,58 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create_argotest_repo
+  tile: Create Repo
+  description: Template to create Repo 
+spec:
+  owner: rajs
+  type: service
+  parameters:
+    - title: Inputs
+      required:
+        - appname
+        - replicas
+        - namespace
+      properties:
+        appname:
+          title: App Name 
+          type: string
+          description: type the new appname
+        replicas: 
+          title: How many Repicas do you need. Cannot exceed 5
+          type: string
+          description: Number of replicas
+          pattern: "[1-5]{1}"
+        namespace:
+          title: Choose 1 of these namespaces
+          type: string
+          description: Pick a namespace
+          enum: ['default', 'test1', 'test2']
+
+  steps:
+    - id: fetch-base
+      name: fetch-base
+      action: fetch:template
+      input:
+        url: https://github.com/rajcsingh-git/bs-test-deployments
+        values: 
+          app: ${{ parameters.appname }}
+          replicas: ${{ parameters.replicas }}
+          namespace: ${{ parameters.namespace }}
+
+    - id: create-new-repo 
+      name: create-new-repo 
+      action: publish:github
+      input:
+        repourl: github.com?repo=${{appname}}
+        allowedHosts: [ 'github.com' ]
+        description: Create new repo 
+        repoVisibility: public
+        defaultBranch: main
+
+    - id: register
+      name: register
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['create-new-repo'].output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
